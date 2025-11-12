@@ -70,6 +70,36 @@ function wpt_settings_page() {
 
             </table>
 
+            <hr>
+
+            <h2>Database Optimization</h2>
+            <p>Preview and clean unnecessary data such as revisions, drafts, trashed posts, and expired transients.</p>
+
+            <form method="post">
+                <input type="hidden" name="wpt_preview_db" value="1" />
+                <?php submit_button("Preview Optimization"); ?>
+            </form>
+
+            <?php
+            if (isset($_POST['wpt_preview_db'])) {
+                $preview = wpt_get_optimization_preview();
+
+                echo '<div class="notice notice-info"><h3>Optimization Preview</h3>';
+                echo '<p><strong>Post Revisions:</strong> ' . $preview['revisions'] . '</p>';
+                echo '<p><strong>Auto Drafts:</strong> ' . $preview['auto_drafts'] . '</p>';
+                echo '<p><strong>Trashed Posts:</strong> ' . $preview['trashed'] . '</p>';
+                echo '<p><strong>Expired Transients:</strong> ' . $preview['expired_transients'] . '</p>';
+                echo '<p><strong>Database Overhead:</strong> ' . $preview['overhead_mb'] . ' MB</p>';
+
+                echo '</div>';
+
+                echo '<form method="post">';
+                echo '<input type="hidden" name="wpt_optimize_db" value="1" />';
+                submit_button("Run Optimization Now", "primary");
+                echo '</form>';
+            }
+            ?>
+
             <?php submit_button(); ?>
         </form>
     </div>

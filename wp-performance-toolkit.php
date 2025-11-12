@@ -73,3 +73,98 @@ if ( isset($options['enable_security_headers']) && $options['enable_security_hea
 
     add_action('send_headers', 'wpt_add_security_headers');
 }
+
+/*
+|--------------------------------------------------------------------------
+| DATABASE OPTIMIZATION
+|--------------------------------------------------------------------------
+*/
+
+function wpt_optimize_database() {
+
+    global $wpdb;
+
+    // 1. Delete post revisions
+    $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_type = 'revision'");
+
+    // 2. Delete auto-drafts
+    $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_status = 'auto-draft'");
+
+    // 3. Delete trashed posts
+    $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_status = 'trash'");
+
+    // 4. Delete expired transients
+    $wpdb->query(
+        "DELETE FROM {$wpdb->options} 
+         WHERE option_name LIKE '_transient_timeout_%' 
+         AND option_value < UNIX_TIMESTAMP()"
+    );
+
+    $wpdb->query(
+        "DELETE FROM {$wpdb->options} 
+         WHERE option_name LIKE '_transient_%' 
+         AND option_name NOT LIKE '_transient_timeout_%'"
+    );
+
+    // 5. Optimize all tables
+    $tables = $wpdb->get_results("SHOW TABLES", ARRAY_N);
+
+    foreach ($tables as $table) {
+        $wpdb->query("OPTIMIZE TABLE {$table[0]}");
+    }
+
+    return true;
+}
+
+// Handle button action
+if (isset($_POST['wpt_optimize_db']) && current_user_can('manage_options')) {
+    wpt_optimize_database();
+    add_action('admin_notices', function() {
+        echo '<div class="notice notice-success is-dismissible"><p>Database optimized successfully.</p></div>';
+    });
+}
+
+/*
+|--------------------------------------------------------------------------
+| DATABASE OPTIMIZATION PREVIEW
+|--------------------------------------------------------------------------
+*/
+
+function wpt_get_optimization_preview() {
+    global $wpdb;
+    $preview = [];
+
+    // Count revisions
+    $preview['revisions'] = $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'"
+    );
+
+    // Count auto drafts
+    $preview['auto_drafts'] = $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'auto-draft'"
+    );
+
+    // Count trashed posts
+    $preview['trashed'] = $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'trash'"
+    );
+
+    // Count expired transients
+    $preview['expired_transients'] = $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->options}
+         WHERE option_name LIKE '_transient_timeout_%'
+         AND option_value < UNIX_TIMESTAMP()"
+    );
+
+    // Estimate overhead (unused space)
+    $overhead = $wpdb->get_results("SHOW TABLE STATUS");
+
+    $total_overhead = 0;
+    foreach ($overhead as $table) {
+        $total_overhead += $table->Data_free;
+    }
+
+    $preview['overhead_mb'] = round($total_overhead / 1024 / 1024, 2);
+
+    return $preview;
+}
