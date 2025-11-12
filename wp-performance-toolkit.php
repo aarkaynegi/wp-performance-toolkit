@@ -44,3 +44,32 @@ if ( isset($options['limit_heartbeat']) && $options['limit_heartbeat'] == 1 ) {
     }
     add_filter( 'heartbeat_settings', 'wpt_heartbeat_settings' );
 }
+
+/* Add security headers */
+if ( isset($options['enable_security_headers']) && $options['enable_security_headers'] == 1 ) {
+
+    function wpt_add_security_headers() {
+
+        // Prevent clickjacking
+        header("X-Frame-Options: SAMEORIGIN");
+
+        // Prevent MIME sniffing
+        header("X-Content-Type-Options: nosniff");
+
+        // XSS protection for old browsers
+        header("X-XSS-Protection: 1; mode=block");
+
+        // Referrer policy
+        header("Referrer-Policy: no-referrer-when-downgrade");
+
+        // Permissions Policy (block access to sensitive device APIs)
+        header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+
+        // Enable Strict-Transport-Security (HTTPS only)
+        if ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ) {
+            header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
+        }
+    }
+
+    add_action('send_headers', 'wpt_add_security_headers');
+}

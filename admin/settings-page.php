@@ -60,6 +60,14 @@ function wpt_settings_page() {
                     </td>
                 </tr>
 
+                <tr valign="top">
+                    <th scope="row">Enable Security Headers</th>
+                    <td>
+                        <input type="checkbox" name="wpt_settings[enable_security_headers]" value="1"
+                        <?php checked(1, isset($options['enable_security_headers']) ? $options['enable_security_headers'] : 0); ?> />
+                    </td>
+                </tr>
+
             </table>
 
             <?php submit_button(); ?>
